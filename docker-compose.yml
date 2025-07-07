@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laravel-app-dev
+    container_name: laravel-app
+    ports:
+      - "8000:80"
+    volumes:
+      # Monta solo el código fuente, no vendor ni node_modules para evitar lentitud
+      - ./:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+      # Si quieres persistir storage (logs, uploads, etc)
+      - ./storage:/var/www/html/storage
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html/public
+      - COMPOSER_ALLOW_SUPERUSER=1
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: pgsql-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: laravel
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  vite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laravel-vite-dev
+    container_name: vite-dev
+    working_dir: /var/www/html
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
+    volumes:
+      - ./:/var/www/html
+
+volumes:
+  pgdata:
